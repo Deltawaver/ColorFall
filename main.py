@@ -90,7 +90,7 @@ while running:
     if y >= height - 25:
         running = False
     
-    #Заполнение поля - STABLE
+    #STABLE - заполнение поля
     screen.fill((0, 0, 0))
     player_object.draw(x, y)
     for i in range(len(objects)):
