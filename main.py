@@ -1,101 +1,160 @@
-import pygame
 import random
+import pygame
 
-class PlayerObject:
-    def __init__(self, screen):
+PLAYER = pygame.sprite.Group()
+PLATFORMS = pygame.sprite.Group()
+FPS = 60
+
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, screen: pygame.Surface):
+        super().__init__(PLAYER)
+        # STABLE - настройка параметров игрока
         self.screen = screen
+        self.radius = 25
 
-    def draw(self, x, y): 
-        pygame.draw.circle(self.screen, (255, 255, 255), (x, y), 25, 5)
-    
-    #UNSTABLE - имеется баг с застреванием игрока в объектах, проверки нуждаются в корректировке
-    def if_otskok(self, x, y,  v, delta_time, objects):
-        otskok = False
-        for obj in objects:
-            obj_x, obj_y, obj_width, obj_height = obj
-            if (y + 25 >= obj_y and y - 25 <= obj_y + obj_height) and (x + 25 >= obj_x and x - 25 <= obj_x + obj_width):
-                if v > 0 and y - 25 < obj_y:
-                    y = obj_y - 25
-                    otskok = True
-                elif v < 0 and y + 25 > obj_y + obj_height: 
-                    y = obj_y + obj_height + 25  
-                    otskok = True
-        if otskok:
-            v = -0.85 * v
-            v += delta_time / 3000 
-        else:
-            v += delta_time / 3000
-        return v
+        self.base_vx = 4  # базовая скорость игрока по оси x(необходима для сброса после ускорения)
+        self.vx = self.base_vx  # скорость игрока по оси x
+        self.ax = 0.1  # ускорение игрока по оси x
+
+        self.vy = 2  # скорость игрока по оси y
+        self.ay = 0.4  # ускорение игрока по оси y
+
+        # STABLE - спавн игрока
+        self.image = pygame.Surface((2 * self.radius, 2 * self.radius),
+                                    pygame.SRCALPHA, 32)
+        pygame.draw.circle(self.image, pygame.Color("red"),
+                           (self.radius, self.radius), self.radius)
+
+        self.rect = pygame.Rect(self.screen.get_rect().width // 2 - 25, 10, 2 * self.radius, 2 * self.radius)
+
+    # STABLE - передвижение игрока по оси x
+    def move_x(self, direction : int):
+        self.vx += self.ax
+
+        self.rect = self.rect.move(self.vx * direction, 0)
+
+    def reset_vx(self):
+        self.vx = self.base_vx
+
+    # STABLE - передвижение игрока по оси y
+    def update(self):
+        # STABLE ON FIRST TIME - исключение возможности вылета игрока за поле. временно по той причине, что тело по непонятной мне причине тпшит примерно на 10 пикселей от краев, позже буду фиксить
+        if self.rect.x < 10:
+            self.rect.x = 10
+        elif self.rect.x > self.screen.get_rect().width - 60:
+            self.rect.x = self.screen.get_rect().width - 60
             
-#STABLE - пресеты          
-pygame.init()
-width = 480
-height = 920
-screen = pygame.display.set_mode((width, height))
-x, y = 240, 10
-running = True
-moving_left = False
-moving_right = False
-previous_time = pygame.time.get_ticks()
-player_object = PlayerObject(screen)
-v = 0
-
-#UNSTABLE BASE - временная заглушка для отработки функции отскока. В будущем будет заменена на класс Objects
-howmuch = 4
-objects = []
-for _ in range(howmuch):
-    trai = False
-    while not trai:
-        obj_x = random.randint(100, 201)
-        obj_y = random.randint(25, 895)
-        if all(abs(obj_y - another[1]) > 75 for another in objects):
-            trai = True
-            objects.append((obj_x, obj_y, random.randint(10, 200), 20))
-
-    
+        collisions = pygame.sprite.spritecollide(self, PLATFORMS, False) # проверяем, есть ли столкновение
+        if collisions:
+            self.rect.y = collisions[0].rect.y - self.rect.height + collisions[0].vy # чтобы избежать застревания, перемещаем игрока на верх платформы
+            self.vy = -self.vy * 0.85 + collisions[0].vy
+        else:
+            self.vy += self.ay
+            self.rect = self.rect.move(0, self.vy)
+        # STABLE - окончание игры при падении игрока вниз. в будущем отсюда реализуем вызов окна окончания игры
+        if self.rect.y > 920:
+            pygame.quit()
+            exit()  
 
 
-while running:
-    #Часть, отвечающая за движения игрока по оси x - STABLE
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                moving_left = True
-            if event.key == pygame.K_RIGHT:
-                moving_right = True
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT:
-                moving_left = False
-            if event.key == pygame.K_RIGHT:
-                moving_right = False
-    if moving_left:
-        x -= 0.2
-    if moving_right:
-        x += 0.2
+# STABLE - класс платформ(необходимо доработать их перемещение)
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, screen : pygame.Surface):
+        super().__init__(PLATFORMS)
 
-    #timer - STABLE
-    current_time = pygame.time.get_ticks()  # Получение текущего времени
-    delta_time = current_time - previous_time  # Вычисление разницы во времени
-    previous_time = current_time # Обновление предыдущего времени
-    
-    #изменение по оси y, нахождение "в рамках" - STABLE
-    v = player_object.if_otskok(x, y, v, delta_time, objects)
-    y += v  
-    if x > width - 25:
-        x = width - 25
-    if x < 25:
-        x = 25
-    if y >= height - 25:
-        running = False
-    
-    #STABLE - заполнение поля
+        self.screen = screen
+        self.vy = -1
+        self.ay = -0.005
+
+
+        obj_width = random.randint(50, 200)
+        obj_height = 20
+
+        self.image = pygame.Surface((obj_width, obj_height))
+        self.image.fill((255, 255, 255))
+
+        self.rect = self.image.get_rect()
+        obj_x = random.randint(10, 201)
+        self.rect.x = obj_x
+        self.legal = False
+        self.all_y = []
+        while not self.legal:
+            obj_y = random.randint(25, 895)
+            if all(abs(obj_y - y) > 75 for y in self.all_y):
+                self.all_y.append(obj_y)
+                self.legal - True
+        self.rect.y = obj_y
+        self.legal = False
+
+    def update(self):
+        if self.vy <= -4:
+            self.ay = 0
+
+        self.vy += self.ay
+        self.rect = self.rect.move(0, self.vy)
+
+
+if __name__ == '__main__':
+    # STABLE - установка пресетов
+    pygame.init()
+    width = 480
+    height = 920
+    screen = pygame.display.set_mode((width, height))
     screen.fill((0, 0, 0))
-    player_object.draw(x, y)
-    for i in range(len(objects)):
-        pygame.draw.rect(screen, (255, 255, 255), objects[i], 5)
+    moving_left = False
+    moving_right = False
+
+    # UNSTABLE - создание объектов спрайтов(необходимо создать цикл размещения платформ)
+
+    player = Player(screen)
+    platform_count = random.randint(5, 10)
+    for _ in range(platform_count):
+        platform = Platform(screen)
+        
+
     pygame.display.flip()
-    
-    
-    
+
+    running = True
+    clock = pygame.time.Clock()
+
+    # STABLE - основной цикл
+    while running:
+        for event in pygame.event.get():
+            # при закрытии окна
+            if event.type == pygame.QUIT:
+                running = False
+
+            # нажатие клавиш
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    moving_left = True
+                if event.key == pygame.K_RIGHT:
+                    moving_right = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    player.reset_vx()
+                    moving_left = False
+                if event.key == pygame.K_RIGHT:
+                    player.reset_vx()
+                    moving_right = False
+
+        # перемещение по оси x
+        if moving_left:
+            player.move_x(-1)
+        if moving_right:
+            player.move_x(1)
+
+        # отрисовка всего
+        screen.fill((0, 0, 0))
+        PLAYER.draw(screen)
+        PLATFORMS.draw(screen)
+
+        # обновление спрайтов
+        PLAYER.update()
+        PLATFORMS.update()
+
+        clock.tick(FPS)
+        pygame.display.flip()
+
+    pygame.quit()
