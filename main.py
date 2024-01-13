@@ -5,60 +5,78 @@ PLAYER = pygame.sprite.Group()
 PLATFORMS = pygame.sprite.Group()
 FPS = 60
 
-import pygame
-
+#STABLE - класс окна конца игры
 class GameOver:
-
     def __init__(self, screen, width, height):
         self.screen = screen
         self.width = width
         self.height = height
         self.running = True
-        # Создаем кнопки
+        
         self.restart_button = pygame.Rect(
             (width // 2 - 100, height // 2 - 50), (200, 50)
         )
         self.quit_button = pygame.Rect(
             (width // 2 - 100, height // 2 + 50), (200, 50)
         )
-
-        # Задаем текст на кнопках
         pygame.font.init()
-        self.restart_text = pygame.font.SysFont("Arial", 30).render("Restart", True, (255, 255, 255))
-        self.quit_text = pygame.font.SysFont("Arial", 30).render("Quit", True, (255, 255, 255))
+        self.restart_text = pygame.font.SysFont("Arial", 30, bold=True).render("Restart", True, (255, 255, 255))
+        self.quit_text = pygame.font.SysFont("Arial", 30, bold=True).render("Quit", True, (255, 255, 255))
 
     def draw(self):
         while self.running:
-            # Fill the screen with black
+            #STABLE - создание кнопок и настройка их внешнего вида
             self.screen.fill((0, 0, 0))
+            pygame.draw.rect(self.screen, (255, 255, 255), self.restart_button, 5)
+            pygame.draw.rect(self.screen, (255, 255, 255), self.quit_button, 5)
 
-            # Draw buttons
-            pygame.draw.rect(self.screen, (0, 0, 0), self.restart_button)
-            pygame.draw.rect(self.screen, (0, 0, 0), self.quit_button)
+            text_x = self.restart_button.x + self.restart_button.width / 2 - self.restart_text.get_width() / 2
+            text_y = self.restart_button.y + self.restart_button.height / 2 - self.restart_text.get_height() / 2
+            self.screen.blit(self.restart_text, (text_x, text_y))
 
-            # Draw text on buttons
-            self.screen.blit(self.restart_text, (self.restart_button.x + 50, self.restart_button.y + 20))
-            self.screen.blit(self.quit_text, (self.quit_button.x + 50, self.quit_button.y + 20))
+            text_x = self.quit_button.x + self.quit_button.width / 2 - self.quit_text.get_width() / 2
+            text_y = self.quit_button.y + self.quit_button.height / 2 - self.quit_text.get_height() / 2
+            self.screen.blit(self.quit_text, (text_x, text_y))
+            
+            font = pygame.font.SysFont("Arial", 80, bold=True)
+            text = font.render("Game Over", True, (255, 0, 0))
+            
+            frame = pygame.Rect(
+                (width // 2 - text.get_width() // 2 - 20, height // 2 - text.get_height() // 2 - 300),
+                (text.get_width() + 40, text.get_height() + 40),
+            )
 
-            # Get user input
+            text_x = width // 2 - text.get_width() // 2 - 120
+            text_y = height // 2 - text.get_height() // 2 - 250
+
+            pygame.draw.rect(screen, (255, 255, 255), frame, 5)
+            screen.blit(text, (frame.x + 20, frame.y + 20))
+
+            #STABLE - получение ввода от игрока
             for event in pygame.event.get():
+                #возможность просто закрытить игру
                 if event.type == pygame.QUIT:
                     self.running = False
-
-                # Check for button presses
+                    exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.restart_button.collidepoint(event.pos):
-                        # Restart the game
+                        #рестарт
                         self.running = False
+                        self.restart()
                     elif self.quit_button.collidepoint(event.pos):
-                        # Завершаем игру
+                        #выход
                         self.running = False
                         exit()
-
-            # Update the display
             pygame.display.flip()
-
-
+    #STABLE - перезапуск игры        
+    def restart(self):
+        self.screen.fill((0, 0, 0))
+        player.restart()
+        PLATFORMS.empty()
+        platforms = []
+        for _ in range(random.randint(5, 10)):
+            platform = Platform(self.screen)
+            platforms.append(platform)
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen: pygame.Surface):
@@ -113,6 +131,11 @@ class Player(pygame.sprite.Sprite):
 
             # Показываем окно Game Over
             game_over.draw()
+    # STABLE - сброс всех переменных
+    def restart(self):
+        player.rect.x = 240
+        player.rect.y = 10
+        self.vy = 2
 
 
 # STABLE - класс платформ(необходимо доработать их перемещение)
@@ -144,6 +167,12 @@ class Platform(pygame.sprite.Sprite):
 
         self.vy += self.ay
         self.rect = self.rect.move(0, self.vy)
+    
+    def restart(self):
+        # Устанавливаем позицию платформы за пределами экрана
+        self.rect.x = -1000
+        self.rect.y = -1000
+
 
 
 if __name__ == '__main__':
@@ -175,11 +204,12 @@ if __name__ == '__main__':
             # при закрытии окна
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
 
             # нажатие клавиш
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    moving_left = True
+                        moving_left = True
                 if event.key == pygame.K_RIGHT:
                     moving_right = True
             if event.type == pygame.KEYUP:
