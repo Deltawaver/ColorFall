@@ -5,6 +5,103 @@ PLAYER = pygame.sprite.Group()
 PLATFORMS = pygame.sprite.Group()
 FPS = 60
 
+#UNSTABLE - баг при нажатии на QUIT (программа закрывается но выдает ошибку)
+class StartMenu:
+
+    def __init__(self, screen, width, height):
+        
+        self.screen = screen
+        self.width = width
+        self.height = height
+        self.running = True
+
+        # STABLE - настройка параметров окна
+        self.screen.fill((0, 0, 0))
+        
+        # STABLE - создание заголовка
+        self.level1_button = pygame.Rect(
+            (width // 2 - 100, height // 2 - 40), (200, 50)
+        )
+        self.level2_button = pygame.Rect(
+            (width // 2 - 100, height // 2 + 40), (200, 50)
+        )
+        self.level3_button = pygame.Rect(
+            (width // 2 - 100, height // 2 + 120), (200, 50)
+        )
+        self.quit_button = pygame.Rect(
+            (width // 2 - 100, height // 2 + 200), (200, 50)
+        )
+        pygame.font.init()
+        self.level1_text = pygame.font.SysFont("Arial", 30, bold=True).render("Hero Red", True, (255, 0, 0))
+        self.level2_text = pygame.font.SysFont("Arial", 30, bold=True).render("Hero Green", True, (0, 255, 0))
+        self.level3_text = pygame.font.SysFont("Arial", 30, bold=True).render("Hero BLue", True, (0, 0, 255))
+        self.quit_text = pygame.font.SysFont("Arial", 30, bold=True).render("Quit", True, (255, 255, 255))
+
+    def draw(self):
+        while self.running:
+            #STABLE - создание кнопок и настройка их внешнего вида
+            self.screen.fill((0, 0, 0))
+            pygame.draw.rect(self.screen, (255, 255, 255), self.level1_button, 5)
+            pygame.draw.rect(self.screen, (255, 255, 255), self.level2_button, 5)
+            pygame.draw.rect(self.screen, (255, 255, 255), self.level3_button, 5)
+            pygame.draw.rect(self.screen, (255, 255, 255), self.quit_button, 5)
+
+            text_x = self.level1_button.x + self.level1_button.width / 2 - self.level1_text.get_width() / 2
+            text_y = self.level1_button.y + self.level1_button.height / 2 - self.level1_text.get_height() / 2
+            self.screen.blit(self.level1_text, (text_x, text_y))
+            
+            text_x = self.level2_button.x + self.level2_button.width / 2 - self.level2_text.get_width() / 2
+            text_y = self.level2_button.y + self.level2_button.height / 2 - self.level2_text.get_height() / 2
+            self.screen.blit(self.level2_text, (text_x, text_y))
+            
+            text_x = self.level3_button.x + self.level3_button.width / 2 - self.level3_text.get_width() / 2
+            text_y = self.level3_button.y + self.level3_button.height / 2 - self.level3_text.get_height() / 2
+            self.screen.blit(self.level3_text, (text_x, text_y))
+
+            text_x = self.quit_button.x + self.quit_button.width / 2 - self.quit_text.get_width() / 2
+            text_y = self.quit_button.y + self.quit_button.height / 2 - self.quit_text.get_height() / 2
+            self.screen.blit(self.quit_text, (text_x, text_y))
+            
+            font = pygame.font.SysFont("Arial", 80, bold=True)
+            text = font.render("ColorFall", True, (255, 0, 0))
+            
+            frame = pygame.Rect(
+                (width // 2 - text.get_width() // 2 - 20, height // 2 - text.get_height() // 2 - 300),
+                (text.get_width() + 40, text.get_height() + 40),
+            )
+
+            text_x = width // 2 - text.get_width() // 2 - 120
+            text_y = height // 2 - text.get_height() // 2 - 250
+
+            pygame.draw.rect(screen, (255, 255, 255), frame, 5)
+            screen.blit(text, (frame.x + 20, frame.y + 20))
+
+            #STABLE - получение ввода от игрока
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.level1_button.collidepoint(event.pos):
+                        startgame()
+                    if self.level2_button.collidepoint(event.pos):
+                        startgame()
+                    if self.level3_button.collidepoint(event.pos):
+                        startgame()
+                    elif self.quit_button.collidepoint(event.pos):
+                        self.running = False
+                        exit()
+            pygame.display.flip()
+            
+    def run(self):
+        while self.running:
+            # Обработка событий
+            for event in pygame.event.get():
+                self.handle_event(event)
+            # Отрисовка экрана
+            self.draw()
+            pygame.display.flip()
+            
 #STABLE - класс окна конца игры
 class GameOver:
     def __init__(self, screen, width, height):
@@ -20,10 +117,10 @@ class GameOver:
             (width // 2 - 100, height // 2 + 50), (200, 50)
         )
         pygame.font.init()
-        self.restart_text = pygame.font.SysFont("Arial", 30, bold=True).render("Restart", True, (255, 255, 255))
+        self.restart_text = pygame.font.SysFont("Arial", 30, bold=True).render("Revive", True, (255, 255, 255))
         self.quit_text = pygame.font.SysFont("Arial", 30, bold=True).render("Quit", True, (255, 255, 255))
 
-    def draw(self):
+    def draw(self):    
         while self.running:
             #STABLE - создание кнопок и настройка их внешнего вида
             self.screen.fill((0, 0, 0))
@@ -38,8 +135,8 @@ class GameOver:
             text_y = self.quit_button.y + self.quit_button.height / 2 - self.quit_text.get_height() / 2
             self.screen.blit(self.quit_text, (text_x, text_y))
             
-            font = pygame.font.SysFont("Arial", 80, bold=True)
-            text = font.render("Game Over", True, (255, 0, 0))
+            font = pygame.font.SysFont("Arial", 70, bold=True)
+            text = font.render("Into the Void", True, (255, 0, 0))
             
             frame = pygame.Rect(
                 (width // 2 - text.get_width() // 2 - 20, height // 2 - text.get_height() // 2 - 300),
@@ -54,7 +151,6 @@ class GameOver:
 
             #STABLE - получение ввода от игрока
             for event in pygame.event.get():
-                #возможность просто закрытить игру
                 if event.type == pygame.QUIT:
                     self.running = False
                     exit()
@@ -65,9 +161,10 @@ class GameOver:
                         self.restart()
                     elif self.quit_button.collidepoint(event.pos):
                         #выход
-                        self.running = False
-                        exit()
+                        start_menu = StartMenu(screen, width, height)
+                        start_menu.run()
             pygame.display.flip()
+            
     #STABLE - перезапуск игры        
     def restart(self):
         self.screen.fill((0, 0, 0))
@@ -78,6 +175,7 @@ class GameOver:
             platform = Platform(self.screen)
             platforms.append(platform)
 
+#STABLE - добавлена функция для сброса всех переменных при рестарте
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen: pygame.Surface):
         super().__init__(PLAYER)
@@ -103,9 +201,9 @@ class Player(pygame.sprite.Sprite):
     # STABLE - передвижение игрока по оси x
     def move_x(self, direction : int):
         self.vx += self.ax
-
         self.rect = self.rect.move(self.vx * direction, 0)
 
+    # сброс скорости
     def reset_vx(self):
         self.vx = self.base_vx
 
@@ -131,11 +229,17 @@ class Player(pygame.sprite.Sprite):
 
             # Показываем окно Game Over
             game_over.draw()
+        if self.rect.y > 900:
+            self.vx = 0
+            self.moving_left = False
+            self.moving_right = False
+            
     # STABLE - сброс всех переменных
     def restart(self):
         player.rect.x = 240
         player.rect.y = 10
-        self.vy = 2
+        self.vx = 0
+        self.vy = 0
 
 
 # STABLE - класс платформ(необходимо доработать их перемещение)
@@ -173,8 +277,94 @@ class Platform(pygame.sprite.Sprite):
         self.rect.x = -1000
         self.rect.y = -1000
 
+#STABLE - функция отвечающая за саму игру возможно требуется переработка под уровневую систему
+def startgame():
+    global moving_left
+    global moving_right
+    moving_left = False
+    moving_right = False
+    
+    platform_count = random.randint(5, 10)
+    for _ in range(platform_count):
+        platform = Platform(screen)
+        
+
+    pygame.display.flip()
+
+    running = True
+    clock = pygame.time.Clock()
+
+    # STABLE - основной цикл
+    while running:
+        for event in pygame.event.get():
+            # при закрытии окна
+            if event.type == pygame.QUIT:
+                running = False
+                pygame.quit()
+
+            # нажатие клавиш
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                        moving_left = True
+                if event.key == pygame.K_RIGHT:
+                    moving_right = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    player.reset_vx()
+                    moving_left = False
+                if event.key == pygame.K_RIGHT:
+                    player.reset_vx()
+                    moving_right = False
+
+        # перемещение по оси x
+        if moving_left:
+            player.move_x(-1)
+        if moving_right:
+            player.move_x(1)
+
+        # отрисовка всего
+        screen.fill((0, 0, 0))
+        PLAYER.draw(screen)
+        PLATFORMS.draw(screen)
+
+        # обновление спрайтов
+        PLAYER.update()
+        PLATFORMS.update()
+
+        clock.tick(FPS)
+        pygame.display.flip()
+        
+    moving_right = False
+    moving_left = False
+    pygame.quit()
+    
+if __name__ == '__main__':
+    # STABLE - установка пресетов
+    pygame.init()
+    width = 480
+    height = 920
+    screen = pygame.display.set_mode((width, height))
+    screen.fill((0, 0, 0))
+    player = Player(screen)
+    moving_left = False
+    moving_right = False
+    main_menu = StartMenu(screen, width, height)
+    main_menu.draw()
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+'''
 if __name__ == '__main__':
     # STABLE - установка пресетов
     pygame.init()
@@ -184,6 +374,7 @@ if __name__ == '__main__':
     screen.fill((0, 0, 0))
     moving_left = False
     moving_right = False
+    
 
     # UNSTABLE - создание объектов спрайтов(необходимо создать цикл размещения платформ)
 
@@ -239,3 +430,4 @@ if __name__ == '__main__':
         pygame.display.flip()
 
     pygame.quit()
+'''
