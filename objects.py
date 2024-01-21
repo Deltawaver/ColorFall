@@ -103,3 +103,43 @@ class Platform(pygame.sprite.Sprite):
         # Устанавливаем позицию платформы за пределами экрана
         self.rect.x = -1000
         self.rect.y = -1000
+
+#STABLE - счётчик
+class ScoreCount:
+
+    def __init__(self, screen: pygame.Surface):
+        self.screen = screen
+        self.score = 0
+        self.time = 0
+
+    def set_score(self, score):
+        self.score = score
+
+    def get_score(self):
+        return self.score
+
+    def update(self):
+        self.score += 2 
+        
+    def clear(self):
+        self.score = 0
+
+    def draw(self):
+        self.update()
+
+        # Get the score text
+        score_text = str(self.score)
+
+        font = pygame.font.SysFont("Arial", 30, bold = True)
+        text_size = font.size(score_text)
+
+        text_x = 480 - text_size[0] - 20
+        text_y = text_size[1] + 10
+
+        score_text_rendered = font.render(score_text, True, (255, 255, 255))
+        self.screen.blit(score_text_rendered, (text_x, text_y))
+
+    def check_collision(self, player: Player):
+        collisions = pygame.sprite.spritecollide(player, PLATFORMS, False)
+        if collisions:
+            self.score += 10

@@ -1,5 +1,6 @@
 from config import *
 from objects import *
+import sqlite3
 
 
 # STABLE - создание меню
@@ -104,6 +105,7 @@ class StartMenu:
 def startgame(screen):
     moving_left = False
     moving_right = False
+    
 
     player = Player(screen)
 
@@ -113,6 +115,8 @@ def startgame(screen):
 
     pygame.display.flip()
 
+    score_count = ScoreCount(screen)
+    
     running = True
     clock = pygame.time.Clock()
 
@@ -121,14 +125,16 @@ def startgame(screen):
         # STABLE - окончание игры при падении игрока вниз. в будущем отсюда реализуем вызов окна окончания игры
         if player.rect.y > 920 or player.rect.y < -50:
             # Создаем окно Game Over
-            game_over = GameOver(player.screen, player.screen.get_rect().width, player.screen.get_rect().height)
+            your_score = score_count.get_score()
+            game_over = GameOver(player.screen, player.screen.get_rect().width, player.screen.get_rect().height, your_score)
 
             moving_left = False
             moving_right = False
 
             # Показываем окно Game Over
             game_over.draw()
-
+            
+            score_count.clear()
             screen.fill((0, 0, 0))
             PLAYER.empty()
             PLATFORMS.empty()
@@ -156,6 +162,7 @@ def startgame(screen):
                     player.reset_vx()
                     moving_right = False
 
+        
         # перемещение по оси x
         if moving_left:
             player.move_x(-1)
@@ -164,6 +171,7 @@ def startgame(screen):
 
         # отрисовка всего
         screen.fill((0, 0, 0))
+        score_count.draw()
         PLAYER.draw(screen)
         PLATFORMS.draw(screen)
 
@@ -171,19 +179,23 @@ def startgame(screen):
         PLAYER.update()
         PLATFORMS.update()
 
+        score_count.update()
         clock.tick(FPS)
         pygame.display.flip()
 
+    
     pygame.quit()
 
 
 # STABLE - класс окна конца игры
 class GameOver:
-    def __init__(self, screen, width, height):
+    def __init__(self, screen, width, height, your_score):
         self.screen = screen
         self.width = width
         self.height = height
         self.running = True
+        self.score = your_score
+        self.ifhighscore = add_score_to_database(self.score)
 
         self.restart_button = pygame.Rect(
             (width // 2 - 100, height // 2 - 50), (200, 50)
@@ -223,6 +235,21 @@ class GameOver:
 
             pygame.draw.rect(self.screen, (255, 255, 255), frame, 5)
             self.screen.blit(text, (frame.x + 20, frame.y + 20))
+            
+
+            
+            score_text = "Your score: " + str(self.score)
+            score_font = pygame.font.SysFont("Arial", 30, bold=True)
+            textsc = score_font.render(score_text, True, (255, 255, 255))
+            textsc_x = self.width // 2 - textsc.get_width() // 2 
+            textsc_y = self.height // 2 - textsc.get_height() // 2 - 100
+            self.screen.blit(textsc, (textsc_x, textsc_y))
+            
+            if self.ifhighscore:
+                textsc_x = self.width // 2 - textsc.get_width() // 2 
+                textsc_y = self.height // 2 - textsc.get_height() // 2 - 150
+                textsc = score_font.render("New highscore!", True, (255, 255, 255))
+                self.screen.blit(textsc, (textsc_x, textsc_y))
 
             # STABLE - получение ввода от игрока
             for event in pygame.event.get():
@@ -243,3 +270,31 @@ class GameOver:
     # STABLE - перезапуск игры
     def restart(self):
         self.running = False
+
+# STABLE - работа с базой данных рекордов
+def add_score_to_database(score):
+    conn = sqlite3.connect("highscores")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM scores ORDER BY level1 DESC")
+    results = cursor.fetchall()
+    if score not in results:
+    # Вставьте новый счет в колонку level1
+        cursor.execute("INSERT INTO scores (level1) VALUES (?)", (score,))
+
+    # Отсортируйте колонку level1 по убыванию
+    cursor.execute("SELECT * FROM scores ORDER BY level1 DESC")
+    results = cursor.fetchall()
+
+    
+    # Проверьте, является ли первый элемент новым рекордом
+    if results[0][0] == score:
+        conn.commit()
+        conn.close()
+        return True
+    else:
+        conn.commit()
+        conn.close()
+        return False
+
+    
