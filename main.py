@@ -1,13 +1,10 @@
-from menu import StartMenu
 import pygame
+
+from menu import StartMenu
 
 PLAYER = pygame.sprite.Group()
 PLATFORMS = pygame.sprite.Group()
 FPS = 60
-
-
-
-
 
 if __name__ == '__main__':
     # STABLE - установка пресетов
