@@ -17,7 +17,7 @@ class Player(pygame.sprite.Sprite):
 
         self.base_vx = 4  # базовая скорость игрока по оси x(необходима для сброса после ускорения)
         self.vx = self.base_vx  # скорость игрока по оси x
-        self.ax = 0.1  # ускорение игрока по оси x
+        self.ax = 0.4  # ускорение игрока по оси x
 
         self.vy = 2  # скорость игрока по оси y
         self.ay = 0.4  # ускорение игрока по оси y
@@ -73,12 +73,13 @@ class Player(pygame.sprite.Sprite):
 
 # STABLE - класс платформ(необходимо доработать их перемещение)
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen: pygame.Surface, obj_y, obj_x, vy=-3, vx=0):
         super().__init__(PLATFORMS)
 
         self.screen = screen
-        self.vy = -1
-        self.ay = -0.005
+        self.vy = vy
+        self.vx = vx
+        self.ay = -0.002
 
         obj_width = random.randint(50, 200)
         obj_height = 20
@@ -87,17 +88,30 @@ class Platform(pygame.sprite.Sprite):
         self.image.fill((255, 255, 255))
 
         self.rect = self.image.get_rect()
-        obj_x = random.randint(10, 201)
         self.rect.x = obj_x
-        obj_y = random.randint(25, 895)
+
         self.rect.y = obj_y
 
     def update(self):
         if self.vy <= -4:
             self.ay = 0
 
+        if self.rect.left <= 0 or self.rect.left + self.rect.width >= 480:
+            self.vx = -self.vx
+
+
         self.vy += self.ay
-        self.rect = self.rect.move(0, self.vy)
+        self.rect = self.rect.move(self.vx, self.vy)
+
+        if self.rect.top < -20:
+            rect_y_list = []
+            for obj_list in PLATFORMS.sprites():
+                rect_y = obj_list.rect.top + 20
+                rect_y_list.append(rect_y)
+            print(rect_y_list, max(rect_y_list))
+            self.__init__(self.screen, max(rect_y_list) + random.randint(100, 150),
+                          random.randint(10, 201), self.vy, self.vx)
+            print("Удалено")
 
     def restart(self):
         # Устанавливаем позицию платформы за пределами экрана

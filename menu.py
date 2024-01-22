@@ -1,3 +1,5 @@
+import random
+
 from config import *
 from objects import *
 import sqlite3
@@ -12,8 +14,10 @@ class StartMenu:
         self.height = height
         self.running = True
 
-        # STABLE - настройка параметров окна
+        # STABLE - настройка параметров окна и очистка поля
         self.screen.fill((0, 0, 0))
+        PLAYER.empty()
+        PLATFORMS.empty()
 
         # STABLE - создание заголовка
         self.level1_button = pygame.Rect(
@@ -67,9 +71,6 @@ class StartMenu:
                 (text.get_width() + 40, text.get_height() + 40),
             )
 
-            text_x = self.width // 2 - text.get_width() // 2 - 120
-            text_y = self.height // 2 - text.get_height() // 2 - 250
-
             pygame.draw.rect(self.screen, (255, 255, 255), frame, 5)
             self.screen.blit(text, (frame.x + 20, frame.y + 20))
 
@@ -80,11 +81,11 @@ class StartMenu:
                     exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.level1_button.collidepoint(event.pos):
-                        startgame(self.screen)
+                        startgame(self.screen, 1)
                     if self.level2_button.collidepoint(event.pos):
-                        startgame(self.screen)
+                        startgame(self.screen, 2)
                     if self.level3_button.collidepoint(event.pos):
-                        startgame(self.screen)
+                        startgame(self.screen, 3)
                     elif self.quit_button.collidepoint(event.pos):
                         self.running = False
                         exit()
@@ -92,26 +93,25 @@ class StartMenu:
 
     def run(self):
         while self.running:
-            # Обработка событий
-            for event in pygame.event.get():
-                self.handle_event(event)
             # Отрисовка экрана
             self.draw()
             pygame.display.flip()
 
-    # STABLE - функция отвечающая за саму игру возможно требуется переработка под уровневую систему
+
+def generate_platforms(screen, vy, vx):
+    obj_y = 150
+    for _ in range(10):
+        obj_x = random.randint(10, 280)
+        platform = Platform(screen, obj_y, obj_x, vy, vx)
+        obj_y += random.randint(100, 150)
 
 
-def startgame(screen):
+def startgame(screen, mode=1):
     moving_left = False
     moving_right = False
     
 
     player = Player(screen)
-
-    platform_count = random.randint(5, 10)
-    for _ in range(platform_count):
-        platform = Platform(screen)
 
     pygame.display.flip()
 
@@ -119,6 +119,14 @@ def startgame(screen):
     
     running = True
     clock = pygame.time.Clock()
+
+    match mode:
+        case 1:  # hero red
+            generate_platforms(screen, -1, 0)
+        case 2:  # hero green
+            generate_platforms(screen, -2, random.choice([1, -1]))
+        case 3:  # hero blue
+            generate_platforms(screen, -3, random.choice([1, -1, 2, -2]))
 
     # STABLE - основной цикл
     while running:
@@ -139,8 +147,15 @@ def startgame(screen):
             PLAYER.empty()
             PLATFORMS.empty()
             player = Player(screen)
-            for _ in range(random.randint(5, 10)):
-                platform = Platform(screen)
+
+            # STABLE - выбираем уровень игрока
+            match mode:
+                case 1:  # hero red
+                    generate_platforms(screen, -1, 0)
+                case 2:  # hero green
+                    generate_platforms(screen, -2, random.choice([1, -1]))
+                case 3:  # hero blue
+                    generate_platforms(screen, -3, random.choice([1, -1, 2, -2]))
 
         for event in pygame.event.get():
             # при закрытии окна
@@ -230,9 +245,6 @@ class GameOver:
                 (text.get_width() + 40, text.get_height() + 40),
             )
 
-            text_x = self.width // 2 - text.get_width() // 2 - 120
-            text_y = self.height // 2 - text.get_height() // 2 - 250
-
             pygame.draw.rect(self.screen, (255, 255, 255), frame, 5)
             self.screen.blit(text, (frame.x + 20, frame.y + 20))
             
@@ -264,6 +276,7 @@ class GameOver:
                     elif self.quit_button.collidepoint(event.pos):
                         # выход
                         start_menu = StartMenu(self.screen, self.width, self.height)
+                        self.running = False
                         start_menu.run()
             pygame.display.flip()
 
