@@ -1,15 +1,11 @@
 import random
 
-import pygame
-
-PLAYER = pygame.sprite.Group()
-PLATFORMS = pygame.sprite.Group()
-FPS = 60
+from config import *
 
 
 # STABLE - добавлена функция для сброса всех переменных при рестарте
 class Player(pygame.sprite.Sprite):
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen: pygame.Surface, mode):
         super().__init__(PLAYER)
         # STABLE - настройка параметров игрока
         self.screen = screen
@@ -22,10 +18,19 @@ class Player(pygame.sprite.Sprite):
         self.vy = 2  # скорость игрока по оси y
         self.ay = 0.4  # ускорение игрока по оси y
 
+        self.color: pygame.Color
+        match mode:
+            case 1:
+                self.color = pygame.Color("red")
+            case 2:
+                self.color = pygame.Color("green")
+            case 3:
+                self.color = pygame.Color("blue")
+
         # STABLE - спавн игрока
         self.image = pygame.Surface((2 * self.radius, 2 * self.radius),
                                     pygame.SRCALPHA, 32)
-        pygame.draw.circle(self.image, pygame.Color("red"),
+        pygame.draw.circle(self.image, self.color,
                            (self.radius, self.radius), self.radius)
 
         self.rect = pygame.Rect(self.screen.get_rect().width // 2 - 25, 10, 2 * self.radius, 2 * self.radius)
@@ -57,7 +62,7 @@ class Player(pygame.sprite.Sprite):
                     0].vy  # чтобы избежать застревания, перемещаем игрока на верх платформы
             else:
                 self.rect.top = platform.top + platform.height
-            self.vy = -self.vy * 0.85
+            self.vy = (-self.vy + collisions[0].vy) * 0.85
         else:
             self.vy += self.ay
             self.rect = self.rect.move(0, self.vy)
@@ -99,7 +104,6 @@ class Platform(pygame.sprite.Sprite):
         if self.rect.left <= 0 or self.rect.left + self.rect.width >= 480:
             self.vx = -self.vx
 
-
         self.vy += self.ay
         self.rect = self.rect.move(self.vx, self.vy)
 
@@ -118,7 +122,8 @@ class Platform(pygame.sprite.Sprite):
         self.rect.x = -1000
         self.rect.y = -1000
 
-#STABLE - счётчик
+
+# STABLE - счётчик
 class ScoreCount:
 
     def __init__(self, screen: pygame.Surface):
@@ -133,8 +138,8 @@ class ScoreCount:
         return self.score
 
     def update(self):
-        self.score += 2 
-        
+        self.score += 2
+
     def clear(self):
         self.score = 0
 
@@ -144,7 +149,7 @@ class ScoreCount:
         # Get the score text
         score_text = str(self.score)
 
-        font = pygame.font.SysFont("Arial", 30, bold = True)
+        font = pygame.font.SysFont("Arial", 30, bold=True)
         text_size = font.size(score_text)
 
         text_x = 480 - text_size[0] - 20
@@ -157,3 +162,26 @@ class ScoreCount:
         collisions = pygame.sprite.spritecollide(player, PLATFORMS, False)
         if collisions:
             self.score += 10
+
+
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y):
+        super().__init__(LOGO)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
